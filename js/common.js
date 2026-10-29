@@ -132,8 +132,23 @@ window.TplSwiper = (function () {
       delete instances[key];
     }
 
-    instances[key] = new Swiper(selector, options);
+    instances[key] = new Swiper(selector, fitLoop(el, options));
     return instances[key];
+  }
+
+  // 한 화면에 여러 장 보이는 슬라이더(Room Preview 3 → 2 → 1)는 슬라이드가 그 칸 수보다 적으면
+  // loop 가 빈칸을 복제 슬라이드로 채운다 — 객실 1개 숙소에서 같은 객실 카드가 3장 보였다.
+  // 그럴 때는 loop 를 끄고 있는 장수만 가운데 정렬한다. 화살표는 Swiper 가 잠가(swiper-button-lock) 숨긴다.
+  // 한 장씩 보이는 히어로·갤러리는 칸 수가 1 이라 해당이 없다.
+  function fitLoop(el, options) {
+    if (!options || !options.loop) return options;
+    var count = el.querySelectorAll('.swiper-slide').length;
+    var maxPerView = Number(options.slidesPerView) || 1;
+    Object.keys(options.breakpoints || {}).forEach(function (bp) {
+      maxPerView = Math.max(maxPerView, Number(options.breakpoints[bp].slidesPerView) || 1);
+    });
+    if (count >= maxPerView) return options;
+    return Object.assign({}, options, { loop: false, centerInsufficientSlides: true });
   }
 
   return { init: init, instances: instances };

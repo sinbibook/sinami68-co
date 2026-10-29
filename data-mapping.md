@@ -147,7 +147,7 @@ Math.round((sqm / 3.305785) * 10) / 10 + '평'; // 1평 = 3.305785㎡
 | -------------------- | -------------------------------- |
 | `roomtype_thumbnail` | 목록 카드 썸네일                 |
 | `roomtype_interior`  | 상세 히어로 슬라이더 / 교차 배너 |
-| `roomtype_exterior`  | 미사용                           |
+| `roomtype_exterior`  | 상세 조각컷 (교차 배너 / 패럴랙스 / 와이드) — 비면 interior |
 
 ### 외부 전경 — `getLandscapeImages()`
 
@@ -155,23 +155,31 @@ Math.round((sqm / 3.305785) * 10) / 10 + '평'; // 1평 = 3.305785㎡
 
 > ⚠️ **원본은 ABOUT 하위가 `펜션소개`(about.html) + `외경보기`(view.html) 2개인데, 백오피스 페이지 편집 화면은 8개뿐이라 대응 화면이 `main` 하나다.** 그래서 두 페이지를 `main.html` 하나로 병합했다. (D·F 도 같은 상황을 같은 방식으로 처리한 전례가 있다)
 >
-> **메뉴명은 `펜션소개` 를 유지하고 페이지 내용은 `about.html` + `view.html` 을 합친다.** 필기체 라벨(`About` / `Landscape`)은 전부 정적이고, `main.hero` 는 `.about_top` 인삿말이 가져간다.
->
-> | 데이터 소스                  | main.html 영역                                    |
-> | ---------------------------- | ------------------------------------------------- |
-> | `property.images[].exterior` | `.sub_visual_wide` 히어로 슬라이더 + `.about_img` 배너 |
-> | `main.hero`                  | `.about_top` 인삿말 (제목 · 본문 · 이미지 3장)    |
-> | `main.about[]`               | `.main_landscape` 갤러리 + `.main_pic` 문구·3분할 |
+> **메뉴명은 `펜션소개` 를 유지하고 페이지 내용은 `about.html` + `view.html` 을 합친다.** 필기체 라벨(`About` / `Landscape`)은 전부 정적이다. 데이터 배분은 아래 "숙소소개 이미지 칸" 을 따른다.
 
 ```
-main.about[].images[isSelected]  ← 블록 순서대로 평탄화 (중복 url 제거)
-  → 비면 main.hero.images[isSelected]
+main.about[] (조각컷 블록 제외) .images[isSelected]  ← 블록 순서대로 평탄화 (중복 url 제거)
+  → 비면 main.hero.images[isSelected] (배너 마커 제외)
   → 그래도 비면 getPropertyExteriorImages()
 ```
 
+### 숙소소개 이미지 칸 — `getMainExteriorImages()` / `getGreetImages()` (2026-10 운영 요청)
+
+백오피스 숙소소개 편집 화면에서 외경을 보고 고칠 수 있게 칸을 옮겼다. 화면에 나오는 사진·위치는 예전과 같다.
+
+| 백오피스 칸                                   | main.html 영역                                        | 원본                          |
+| --------------------------------------------- | ----------------------------------------------------- | ----------------------------- |
+| 메인 소개 섹션 이미지 (`main.hero.images`)    | `.sub_visual_wide` 히어로 슬라이더 + `.about_img` 배너 (`description:'about_banner'`, 없으면 [0]) | view.html 외경 슬라이드 + about.html 배너 |
+| 메인 소개 섹션 타이틀·설명                    | `.about_top` 인삿말 문구                              | about.html `.about_top`       |
+| 소개 섹션 조각컷 블록 (이미지 `description:'about_greet'`) | `.about_top` 인삿말 옆 이미지 3장 — 갤러리·3분할에서는 뺀다 | about.html `.about_top .img_box` |
+| 소개 섹션 나머지 블록                         | `.main_landscape` 갤러리 + `.main_pic` 문구·3분할      | about.html · view.html `.main_pic` |
+
+**예전 크롤 데이터 폴백** (`isLegacyMainLayout()`): 조각컷 블록이 없고 숙소 외경 칸(`customFields.property.images` 의 `property_exterior`)에 크롤 외경이 있으면 예전 배치로 읽는다 — 외경 = 숙소 외경 칸, 조각컷 = 메인 소개 섹션 이미지. 재임포트 전까지 화면이 그대로다.
+조각컷 블록이 없는 새 데이터(직접 만든 숙소)는 조각컷 자리에 외경 이미지를 쓴다. 메인 소개 섹션 이미지가 비면 숙소 외경 칸(숙소관리 DB 포함)으로 폴백한다.
+
 ### 숙소외경이미지 — `getPropertyExteriorImages()`
 
-백오피스 "숙소관리" 의 외경 사진. `main.html` 의 히어로 슬라이더(전부)와 `.about_img` WELCOME 배너(`[0]`)가 공유한다. `room.html` 의 `roomtype_interior` 배분 규약과 같은 방식이다.
+예전 크롤 데이터와 숙소관리 DB 의 외경 사진. 지금은 메인 소개 섹션 이미지가 없을 때의 폴백이다 (위 "숙소소개 이미지 칸").
 
 데이터 모양 두 가지를 모두 받는다.
 
@@ -364,13 +372,14 @@ A형은 `index.gallery` 를 안 써서 헤더 로고 칸으로 빌린다. 이 �
 | `data-footer-business-name`   | 업체명 `<span>`                    | `property.businessInfo.businessName`                                      |
 | `data-footer-representative`  | 대표자 `<span>`                    | `property.businessInfo.representativeName`                                |
 | `data-footer-business-number` | 사업자번호 `<span>`                | `property.businessInfo.businessNumber`                                    |
-| `data-ybs-button`             | 야놀자 YBS `<a>`                   | `property.ybsId` (없으면 `.privacy` 통째로 숨김)                          |
+| `.privacy` (첫 번째)          | 개인정보처리방침 `<a>`             | 정적 — `http://design.trip11.net/privacy/privacy_policy.html` (원본과 동일) |
+| `data-ybs-button`             | 야놀자 YBS `<a>`                   | `property.ybsId` (없으면 YBS `.privacy` 박스만 숨김)                      |
 | `data-booking-link`           | `.ft_btn_reserve` 실시간 예약 버튼 | `property.realtimeBookingId`                                              |
 | `.copy`                       | 카피라이트 문구                    | `property.tripProviderName` → 없으면 정적 문구                    |
 
 > ⚠️ **전화번호 소스 주의**: `businessInfo.businessPhone`(사업자 등록 전화번호)이 아니라 `property.contactPhone`(홈페이지 노출용 번호 배열)을 쓴다.
 >
-> ℹ️ 개인정보처리방침 링크는 JSON 에 숙소별 약관 URL 필드가 없어 제거했다. 카피라이트는 예시 사이트와 동일하게 트립일레븐 정적 문구로 노출한다.
+> ℹ️ 개인정보처리방침은 숙소별 값이 아니라 원본 두 사이트 모두 트립일레븐 공용 약관 URL 을 고정으로 건다. 그래서 매핑 없이 정적 링크로 둔다 (D · F · G 등 다른 템플릿과 같은 URL). 카피라이트는 `tripProviderName` 이 없으면 트립일레븐 정적 문구로 노출한다.
 
 ---
 
@@ -524,6 +533,7 @@ p      : closing.description → BaseDataMapper.CLOSING_FALLBACK_DESC_HTML
 
 슬라이드는 매퍼가 동적 생성하므로, `mapPage()` 말미에서 `window.initIndexSwipers()` / `window.initParallax()` 를 호출한다.
 `window.TplSwiper.init(key, selector, options)` 는 같은 컨테이너에 인스턴스가 있으면 destroy 후 재생성하고, 슬라이드가 0개면 초기화하지 않는다.
+슬라이드 수가 한 화면 최대 칸 수(Room Preview 는 3)보다 적으면 **loop 를 끄고 가운데 정렬**한다(`centerInsufficientSlides`). loop 를 켜 두면 빈칸을 복제 카드로 채워 객실 1개 숙소에서 같은 카드가 3장 보인다. 화살표는 Swiper 가 잠가(`swiper-button-lock`) 숨긴다. index / room / layout-map 의 Room Preview 가 모두 해당된다.
 
 | 키               | 대상                                     | 설정                                         |
 | ---------------- | ---------------------------------------- | -------------------------------------------- |
@@ -543,13 +553,13 @@ p      : closing.description → BaseDataMapper.CLOSING_FALLBACK_DESC_HTML
 
 | data-\* 속성                     | 요소                                                     | JSON 경로                                                                                |
 | -------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `data-main-hero-slides`          | `.sub_visual_box .swiper-wrapper`                        | `getPropertyExteriorImages()` — 숙소외경이미지 **전부**                                  |
+| `data-main-hero-slides`          | `.sub_visual_box .swiper-wrapper`                        | `getMainExteriorImages()` — 메인 소개 섹션 이미지 **전부** (배너 마커 제외)             |
 | `data-main-hero-title`           | `.about_top .about_txt_box strong`                       | `main.hero.title`                                                                        |
 | `data-main-hero-description`     | `.about_top .about_txt_box p`                            | `main.hero.description` → 폴백 `property.subtitle`                                       |
-| `data-main-hero-images`          | `.about_top .img_box`                                    | `main.hero.images[isSelected]` → `img01`(30%/450px) + `img02`·`img03`(22%/220px)         |
-| `data-main-exterior-banner`      | `.about_img .parallax-window`                            | `getExteriorBannerImage()` — `exterior` 중 `description:'about_banner'` (없으면 **[0]**) |
-| `data-main-landscape-slides`     | `.main_landscape .swiper-container_room .swiper-wrapper` | `getLandscapeImages()` — `main.about[].images` 평탄화                                    |
-| `data-main-about-blocks`         | `.main_pic`                                              | `main.about[]` 블록마다 `.about_txt_box(strong+p)` + `.pic_box>.pic_list(img01~03)` 생성 |
+| `data-main-hero-images`          | `.about_top .img_box`                                    | `getGreetImages()` — 소개 섹션 조각컷 블록 → `img01`(30%/450px) + `img02`·`img03`(22%/220px) |
+| `data-main-exterior-banner`      | `.about_img .parallax-window`                            | `getExteriorBannerImage()` — 메인 소개 섹션 중 `description:'about_banner'` (없으면 **[0]**) |
+| `data-main-landscape-slides`     | `.main_landscape .swiper-container_room .swiper-wrapper` | `getLandscapeImages()` — `main.about[].images` 평탄화 (조각컷 블록 제외)                 |
+| `data-main-about-blocks`         | `.main_pic`                                              | `main.about[]` (조각컷 블록 제외) 블록마다 `.about_txt_box(strong+p)` + `.pic_box>.pic_list(img01~03)` 생성 |
 | `data-index-closing-title`       | `.main_pic .txt_box strong`                              | `index.closing.title` → 폴백 `"Welcome to {getPropertyNameEn()}"`                        |
 | `data-index-closing-description` | `.main_pic .txt_box p`                                   | `index.closing.description` → 폴백 `CLOSING_FALLBACK_DESC_HTML`                          |
 
@@ -570,8 +580,8 @@ p      : closing.description → BaseDataMapper.CLOSING_FALLBACK_DESC_HTML
 
 | 원본 페이지          | 데이터 소스                  | main.html 영역                                    |
 | -------------------- | ---------------------------- | ------------------------------------------------- |
-| `view.html` 슬라이더 | `property.images[].exterior` | `.sub_visual_wide` 히어로 + `.about_img` 배너     |
-| `about.html` 상단    | `main.hero`                  | `.about_top` 인삿말 (제목 · 본문 · 이미지 3장)    |
+| `view.html` 슬라이더 | `main.hero.images`           | `.sub_visual_wide` 히어로 + `.about_img` 배너     |
+| `about.html` 상단    | `main.hero` 문구 + 조각컷 블록 | `.about_top` 인삿말 (제목 · 본문 · 이미지 3장)    |
 | `about.html`+`view.html` 본문 | `main.about[]`      | `.main_landscape` 갤러리 + `.main_pic` 문구·3분할 |
 | —                    | `index.closing`              | 맨 아래 Welcome 밴드 (index / room 과 공유)       |
 
@@ -649,12 +659,12 @@ p      : closing.description → BaseDataMapper.CLOSING_FALLBACK_DESC_HTML
 | `data-room-size-pyeong`                       | 표 `td` (PC only)                                        | `rooms[j].size`(㎡) → `toPyeong()`                           |
 | `data-room-amenities`                         | `.table_text li span` (PC+모바일)                        | `rooms[j].amenities.join(', ')`                              |
 | `data-booking-url`                            | `a.btn_reserve`                                          | `property.realtimeBookingId`                                 |
-| `data-room-bnr-images`                        | 1차 `.sub_img_box li` **2개 고정**                       | interior `[0..1]`                                            |
+| `data-room-bnr-images`                        | 1차 `.sub_img_box li` **2개 고정**                       | 조각컷 `[0..1]`                                              |
 | `data-room-bnr-title`                         | `.txt_box strong`                                        | `getPropertyNameEn()` 고정 — 원본과 동일. 객실명이 아니다    |
-| `data-room-bnr-description`                   | `.txt_box p` (배너·와이드 공용)                          | interior `image.description` → 폴백 `BNR_FALLBACK_DESC_HTML` |
-| `data-room-parallax`                          | `.room_parallax .parallax-window`                        | interior `[2]` → 폴백 `[0]`                                  |
-| `data-room-gallery`                           | 2차 `.sub_img_box li` **2개 고정**                       | interior `[3..4]`                                            |
-| `data-room-wide-image`                        | `.sub_img_box_wide .img`                                 | interior `[5]` → 폴백 `[1]`                                  |
+| `data-room-bnr-description`                   | `.txt_box p` (배너·와이드 공용)                          | interior `[0].description` (자리 표시면 무시) → 폴백 `BNR_FALLBACK_DESC_HTML` |
+| `data-room-parallax`                          | `.room_parallax .parallax-window`                        | 조각컷 `[2]` → 폴백 `[0]`                                    |
+| `data-room-gallery`                           | 2차 `.sub_img_box li` **2개 고정**                       | 조각컷 `[3..4]`                                              |
+| `data-room-wide-image`                        | `.sub_img_box_wide .img`                                 | 조각컷 `[5]` → 폴백 `[1]`                                    |
 | `data-room-hello-title`                       | `.sub_img_box_wide .txt_box strong`                      | `"Hello, {getPropertyNameEn()}"` (원본 카피)                 |
 | `data-index-closing-title` / `-description`   | `.room_parallax .txt_box`                                | `index.closing.*` (index/main 과 공유)                       |
 | `data-room-floorplan-section`                 | `.room_floorplan`                                        | 평면도 이미지가 없으면 섹션 전체 미노출                      |
@@ -673,30 +683,25 @@ p      : closing.description → BaseDataMapper.CLOSING_FALLBACK_DESC_HTML
 
 > `strong` 을 객실명으로 바꾸지 않는다. 원본 사이트가 이 자리를 고정 라벨로 쓰며, 객실명은 아래 `.sub_title2 h3` 에서 크게 다시 노출된다. `.sub_visual_wide .main_txt_top strong` 은 정적 영문이므로 `--font-en-main` 단독이다.
 
-### interior 이미지 배분
+### 객실 이미지 배분 — 히어로는 내부 이미지, 조각컷은 컨셉 및 외경 (2026-10 운영 요청)
 
-`roomtype_interior[isSelected]` 를 슬롯별로 나눠 쓴다. 이미지가 모자라면 **앞에서부터 순환**해 빈 칸을 남기지 않는다.
+| 백오피스 객실 설정 칸 | 영역 |
+| --- | --- |
+| 내부 이미지 (`roomtype_interior`) | 히어로 슬라이더 **전부** (`sortOrder` 순) · 목록 카드 썸네일 폴백 |
+| 컨셉 및 외경 (`roomtype_exterior`) | 조각컷 6자리 — 순서(`sortOrder`)가 곧 자리 |
 
-> ⚠️ **`roomtype_interior` 는 배열 순서와 `sortOrder` 가 서로 다른 뜻이다.**
->
-> | | 의미 | 쓰는 곳 |
-> | --- | --- | --- |
-> | 배열 순서 | 원본이 슬롯마다 고른 사진 순서 | 교차 배너 · 패럴랙스 · 와이드 |
-> | `sortOrder` | 원본 히어로 노출 순서 (`1..N`) | 히어로 슬라이더 · 목록 카드 썸네일 |
->
-> 원본은 슬롯마다 관리자가 고른 사진이라 순서에 규칙이 없다 (동궁: 배너1=`6,4` · 패럴랙스=`5` · 배너2=`10,9` · 와이드=`7`). 그래서 크롤러가 슬롯 순서대로 배열을 깔고 `sortOrder` 에 히어로 순서를 담는다.
->
-> `getRoomtypeImages()` 는 **배열 순서를 보존**한다 (`isSelected` 필터만). 순서가 필요한 쪽은 `sortRoomtypeImages()` 로 직접 정렬한다 — 히어로와 썸네일 두 곳뿐이다.
+| 컨셉 및 외경 순서 | 자리 표시 (`description`) | 영역 |
+| --- | --- | --- |
+| 1, 2 | `room_bnr1:0`, `room_bnr1:1` | 교차 배너 #1 (li 2개 고정) |
+| 3 | `room_parallax:0` | 패럴랙스 밴드 |
+| 4, 5 | `room_bnr2:0`, `room_bnr2:1` | 교차 배너 #2 (li 2개 고정) |
+| 6 | `room_wide:0` | 와이드 이미지 |
 
-| 영역            | 사용 범위                    |
-| --------------- | ---------------------------- |
-| 히어로 슬라이더 | **전부** (`sortOrder` 순)    |
-| 교차 배너 #1    | `[0..1]` (li 2개 고정)       |
-| 패럴랙스 밴드   | `[2]`                        |
-| 교차 배너 #2    | `[3..4]` (li 2개 고정)       |
-| 와이드 이미지   | `[5]`                        |
+- 자리 표시가 있으면 표시가 우선이고, 없으면 `sortOrder` 순서로 자리를 정한다. 모자라면 **앞에서부터 순환**해 빈 칸을 남기지 않는다.
+- 원본은 슬롯마다 관리자가 고른 사진이라 순서에 규칙이 없고 대개 히어로 사진을 다시 쓴다 (동궁: 배너1=`6,4` · 패럴랙스=`5` · 배너2=`10,9` · 와이드=`7`). 그래서 같은 사진이 내부 이미지와 컨셉 및 외경 양쪽에 있다.
+- **컨셉 및 외경이 비면 예전처럼 내부 이미지로 채운다** — 예전 크롤 데이터는 조각컷이 내부 이미지 안에 자리 표시(`room_bnr1:0` 등)로 들어 있다. 이 표시는 배너 문구로 쓰지 않는다 (예전에는 `room_parallax:0` 이 문구로 찍혔다).
 
-원본 레이아웃이 `li` 2개 고정이라 개수를 늘리지 않는다. 백오피스에서 이미지를 몇 장 올려도 페이지 길이가 일정하게 유지되고, 나머지는 히어로 슬라이더에서 전부 노출된다. `roomtype_exterior` 는 쓰지 않는다.
+원본 레이아웃이 `li` 2개 고정이라 개수를 늘리지 않는다. 백오피스에서 이미지를 몇 장 올려도 페이지 길이가 일정하게 유지된다.
 
 ### 객실 평면도
 
