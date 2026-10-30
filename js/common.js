@@ -138,7 +138,8 @@ window.TplSwiper = (function () {
 
   // 한 화면에 여러 장 보이는 슬라이더(Room Preview 3 → 2 → 1)는 슬라이드가 그 칸 수보다 적으면
   // loop 가 빈칸을 복제 슬라이드로 채운다 — 객실 1개 숙소에서 같은 객실 카드가 3장 보였다.
-  // 그럴 때는 loop 를 끄고 있는 장수만 가운데 정렬한다. 화살표는 Swiper 가 잠가(swiper-button-lock) 숨긴다.
+  // 그럴 때는 loop 를 끄고 칸 수를 있는 장수로 줄여 영역 폭을 나눠 채운다 (1개면 100%, 2개면 50%씩).
+  // 화살표는 Swiper 가 잠가(swiper-button-lock) 숨긴다.
   // 한 장씩 보이는 히어로·갤러리는 칸 수가 1 이라 해당이 없다.
   function fitLoop(el, options) {
     if (!options || !options.loop) return options;
@@ -148,7 +149,17 @@ window.TplSwiper = (function () {
       maxPerView = Math.max(maxPerView, Number(options.breakpoints[bp].slidesPerView) || 1);
     });
     if (count >= maxPerView) return options;
-    return Object.assign({}, options, { loop: false, centerInsufficientSlides: true });
+    var perView = Math.max(count, 1);
+    var breakpoints = {};
+    Object.keys(options.breakpoints || {}).forEach(function (bp) {
+      var b = options.breakpoints[bp];
+      breakpoints[bp] = Object.assign({}, b, { slidesPerView: Math.min(Number(b.slidesPerView) || 1, perView) });
+    });
+    return Object.assign({}, options, {
+      loop: false,
+      slidesPerView: Math.min(Number(options.slidesPerView) || 1, perView),
+      breakpoints: breakpoints
+    });
   }
 
   return { init: init, instances: instances };

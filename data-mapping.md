@@ -533,7 +533,7 @@ p      : closing.description → BaseDataMapper.CLOSING_FALLBACK_DESC_HTML
 
 슬라이드는 매퍼가 동적 생성하므로, `mapPage()` 말미에서 `window.initIndexSwipers()` / `window.initParallax()` 를 호출한다.
 `window.TplSwiper.init(key, selector, options)` 는 같은 컨테이너에 인스턴스가 있으면 destroy 후 재생성하고, 슬라이드가 0개면 초기화하지 않는다.
-슬라이드 수가 한 화면 최대 칸 수(Room Preview 는 3)보다 적으면 **loop 를 끄고 가운데 정렬**한다(`centerInsufficientSlides`). loop 를 켜 두면 빈칸을 복제 카드로 채워 객실 1개 숙소에서 같은 카드가 3장 보인다. 화살표는 Swiper 가 잠가(`swiper-button-lock`) 숨긴다. index / room / layout-map 의 Room Preview 가 모두 해당된다.
+슬라이드 수가 한 화면 최대 칸 수(Room Preview 는 3)보다 적으면 **loop 를 끄고 칸 수를 슬라이드 수로 줄여** 영역 폭을 나눠 채운다 (1개면 100%, 2개면 50%씩). loop 를 켜 두면 빈칸을 복제 카드로 채워 객실 1개 숙소에서 같은 카드가 3장 보인다. 화살표는 Swiper 가 잠가(`swiper-button-lock`) 숨긴다. index / room / layout-map 의 Room Preview 가 모두 해당된다.
 
 | 키               | 대상                                     | 설정                                         |
 | ---------------- | ---------------------------------------- | -------------------------------------------- |
